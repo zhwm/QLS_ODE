@@ -1,0 +1,160 @@
+---
+title: "ODE"
+author: "Wenmin Zhang"
+date: "30/01/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1
+
+With the same initial condtion, we have that when $r=0.5$, the population eventually dies out and when $r=2.8$, the population acheives equilibrium after 10 generations while when $r=3.3$, the population cannot acheive equilibrium. 
+
+A heuristic explanation will be that if the population achieves equilibrium than it can only be stable at $\frac{r-1}{r}$ or 0. Since the population size cannot go negative, thus 0 will be the stable point $r=0.5$ and 0.64 will be the stable point when $r=2.8$. The oscillation behavior at $r=3.3$ could due to that the change in the system is too rapid to reach a stable point.
+```{r}
+
+num=matrix(0,51,3)
+num[1,]=rep(0.1,3)
+rate = c(0.5,2.8,3.3)
+
+for (c in 1:3)
+  for (r in 1:50)
+    num[r+1,c] = rate[c]*num[r,c]*(1-num[r,c])
+    
+```
+
+```{r}
+for (i in 1:3)
+  plot(1:51,num[,i],type="b",col="red",xlab="time",ylab="number")
+```
+
+## Q2 
+
+As the step size gets smaller, the estimate gets closer to the true value. This is expected since the appproximate procedure gets more accurate.
+```{r}
+integrate <- function(x0,t,h){
+  x = x0
+  ite = t/h
+  for (i in 1:ite)
+    x = x + h*x
+    ite=ite+1
+    return(x)
+}
+```
+
+```{r}
+integrate(1,5,0.1)
+integrate(1,5,0.01)
+integrate(1,5,0.001)
+```
+
+## Q3
+
+(a)
+
+```{r}
+Cu=0.5
+h=0.01
+t=400
+e=0.08
+b=0.8
+a=0.7
+ite = t/h
+v = rep(0,ite+1)
+w = rep(0,ite+1)
+v[1]=1
+w[1]=0.1
+```
+
+```{r}
+for (i in 1:ite) {
+  dw = (e * (v[i] + a - b*w[i]))*h
+  dv = (v[i] - (v[i]^3)/3 -w[i] + Cu)*h
+  w[i+1] <- w[i] + dw
+  v[i+1] <- v[i] + dv
+#  cat(i,collapse="\n")
+#  cat(dw,collapse="\n")
+#  cat(dv,collapse="\n")
+}
+```
+
+```{r}
+plot(1:(ite+1),v,type="b",col="red",xlab="time",ylab="v")
+```
+
+(b)
+
+```{r}
+plot(w,v)
+v0 <- seq(-2,2,by = 0.01)
+w0 <- v0 - v0^3 / 3 + Cu
+lines(w0,v0,col="red")
+w1 <- (v0 + a)/b
+lines(w1,v0,col="blue")
+```
+
+(c)
+
+```{r}
+#v - v^3/3 - (v + a)/b + Cu
+polyroot(c(-a/b+Cu,1-1/b,0,-1/3))
+```
+
+(d)
+
+The Jacobian matrix has the following entries accordingly: $1-v^2$, $-1$, $\epsilon$, $-b\epsilon$.
+
+We can alternatively guess the sign of the eigenvalues from the spiral shape of the trajectory.
+
+```{r}
+vstar = polyroot(c(-a/b+Cu,1-1/b,0,-1/3))
+eigen(matrix(c(1-vstar[2]^2,e,-1,-b*e),2,2))
+```
+
+(e)
+
+```{r}
+Cu = 0
+for (i in 1:ite) {
+  dw = (e * (v[i] + a - b*w[i]))*h
+  dv = (v[i] - (v[i]^3)/3 -w[i] + Cu)*h
+  w[i+1] <- w[i] + dw
+  v[i+1] <- v[i] + dv
+#  cat(i,collapse="\n")
+#  cat(dw,collapse="\n")
+#  cat(dv,collapse="\n")
+}
+plot(1:(ite+1),v,type="b",col="red",xlab="time",ylab="v")
+plot(w,v)
+v0 <- seq(-2,2,by = 0.01)
+w0 <- v0 - v0^3 / 3 + Cu
+lines(w0,v0,col="red")
+w1 <- (v0 + a)/b
+lines(w1,v0,col="blue")
+polyroot(c(-a/b+Cu,1-1/b,0,-1/3))
+vstar = polyroot(c(-a/b+Cu,1-1/b,0,-1/3))
+eigen(matrix(c(1-vstar[2]^2,e,-1,-b*e),2,2))
+```
+
+(f)
+
+```{r}
+vs=c()
+for (Cu in seq(0,0.5,0.01)){
+  vs = c(vs,polyroot(c(-a/b+Cu,1-1/b,0,-1/3))[2])
+}
+```
+
+```{r}
+vseigen <- c()
+for (vst in vs){
+  tmp = eigen(matrix(c(1-vst^2,e,-1,-b*e),2,2))
+#  cat(tmp$values)
+  vseigen <- c(vseigen,Re(tmp$values[1]))
+}
+plot(seq(0,0.5,0.01),vs,col=ifelse(vseigen>0,"red","blue"))
+```
+
